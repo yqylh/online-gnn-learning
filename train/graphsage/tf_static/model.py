@@ -23,7 +23,7 @@ class TFSupervisedGraphSage(SupervisedGraphSage):
         output_data = []
         batch_nodes_seed = utils.to_nn_lib(test_vertices, GPU=False, dtype=tf.int64)
 
-        sampler = dgl.sampling.MultiLayerNeighborSampler([self.samples for x in range(2)], replace=True)
+        sampler = dgl.dataloading.MultiLayerNeighborSampler([self.samples for x in range(2)], replace=True)
 
         collator = dgl.sampling.NodeCollator(graph, batch_nodes_seed, sampler)
         dataloader = torch.utils.data.DataLoader(collator.dataset, collate_fn=collator.collate,
@@ -126,7 +126,7 @@ class RandomTfSupervisedGraphSage(TFSupervisedGraphSage):
     def _run_custom_train(self, graph, subgraph_to_id, id_to_subgraph, train_vertices, graph_util):
         train_vertices = utils.to_nn_lib(train_vertices, GPU=False, dtype=tf.int64)
 
-        sampler = dgl.sampling.MultiLayerNeighborSampler([self.samples for x in range(2)], replace=True)
+        sampler = dgl.dataloading.MultiLayerNeighborSampler([self.samples for x in range(2)], replace=True)
         collator = dgl.sampling.NodeCollator(graph, train_vertices, sampler)
         dataloader = torch.utils.data.DataLoader(collator.dataset, collate_fn=collator.collate,
                                                  batch_size=len(train_vertices) // self.batch_per_timestep,
@@ -162,7 +162,7 @@ class PrioritizedTfSupervisedGraphSage(TFSupervisedGraphSage):
     def _run_custom_train(self, graph, subgraph_to_id, id_to_subgraph, batch_nodes, graph_util):
         batch_nodes_seed = utils.to_nn_lib(batch_nodes, GPU=False, dtype=tf.int64)
 
-        sampler = dgl.sampling.MultiLayerNeighborSampler([self.samples for x in range(2)], replace=True)
+        sampler = dgl.dataloading.MultiLayerNeighborSampler([self.samples for x in range(2)], replace=True)
         collator = dgl.sampling.NodeCollator(graph, batch_nodes_seed, sampler)
         dataloader = torch.utils.data.DataLoader(collator.dataset, collate_fn=collator.collate,
                                                  batch_size=len(batch_nodes_seed) // self.batch_per_timestep,
@@ -210,7 +210,7 @@ class PrioritizedTfSupervisedGraphSage(TFSupervisedGraphSage):
         batch_nids_l = []
         graph = graph_util.get_graph()
 
-        sampler = dgl.sampling.MultiLayerNeighborSampler([self.samples for x in range(2)], replace=True)
+        sampler = dgl.dataloading.MultiLayerNeighborSampler([self.samples for x in range(2)], replace=True)
         collator = dgl.sampling.NodeCollator(graph, batch_nodes_seed_, sampler)
         dataloader = torch.utils.data.DataLoader(collator.dataset, collate_fn=collator.collate,
                                                  batch_size=self.batch_full,  # adaptive batch size
@@ -270,7 +270,7 @@ class FullTfSupervisedGraphSage(TFSupervisedGraphSage):
             print("epoch: ", epoch, " of ", self.batch_per_timestep)
             train_set = tf.random.shuffle(train_set)
 
-            sampler = dgl.sampling.MultiLayerNeighborSampler([self.samples for x in range(2)], replace=True)
+            sampler = dgl.dataloading.MultiLayerNeighborSampler([self.samples for x in range(2)], replace=True)
             collator = dgl.sampling.NodeCollator(graph, train_set, sampler)
             dataloader = torch.utils.data.DataLoader(collator.dataset, collate_fn=collator.collate,
                                                      batch_size=self.batch_size,
@@ -306,7 +306,7 @@ class NoRehTfSupervisedGraphSage(TFSupervisedGraphSage):
             if len(batch_nodes) < 2:
                 return
 
-            sampler = dgl.sampling.MultiLayerNeighborSampler([self.samples for x in range(2)], replace=True)
+            sampler = dgl.dataloading.MultiLayerNeighborSampler([self.samples for x in range(2)], replace=True)
 
             collator = dgl.sampling.NodeCollator(graph, batch_nodes, sampler)
             dataloader = torch.utils.data.DataLoader(collator.dataset, collate_fn=collator.collate,

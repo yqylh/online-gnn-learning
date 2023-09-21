@@ -201,8 +201,8 @@ class MNISTDigitClassifier(object):
         #print(self.graph.edata)
         #print("train_vertices ", train_vertices)
         start=time.time()
-        sampler = dgl.sampling.MultiLayerNeighborSampler([None for x in range(2)], replace=True)
-        dataloader = dgl.sampling.NodeDataLoader(self.graph, train_vertices, sampler, batch_size=batch_size, shuffle=False, drop_last=False, num_workers = 0)
+        sampler = dgl.dataloading.MultiLayerNeighborSampler([None for x in range(2)], replace=True)
+        dataloader = dgl.dataloading.DistNodeDataLoader(self.graph, train_vertices, sampler, batch_size=batch_size, shuffle=False, drop_last=False, num_workers = 0)
         for step, (input_nodes, seeds, blocks) in enumerate(dataloader):
             #print("processing ", seeds, input_nodes, flush=True)
             batch_inputs = self.graph.ndata['feat'][input_nodes]

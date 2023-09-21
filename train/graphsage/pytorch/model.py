@@ -41,8 +41,8 @@ class PytorchSupervisedGraphSage(SupervisedGraphSage):
         self.graphsage_model.eval()
         batch_nodes_seed = torch.LongTensor(test_vertices)
 
-        sampler = dgl.sampling.MultiLayerNeighborSampler([self.samples for x in range(2)], replace=True, return_eids=True)
-        dataloader = dgl.sampling.NodeDataLoader(graph, batch_nodes_seed, sampler,
+        sampler = dgl.dataloading.MultiLayerNeighborSampler([self.samples for x in range(2)], replace=True)
+        dataloader = dgl.dataloading.DistNodeDataLoader(graph, batch_nodes_seed, sampler,
                                                  batch_size=self.batch_full,
                                                  shuffle=False, drop_last=False, num_workers=self.n_workers)
 
@@ -125,8 +125,8 @@ class RandomPytorchSupervisedGraphSage(PytorchSupervisedGraphSage):
         self.graphsage_model.train()
         train_vertices = torch.LongTensor(train_vertices)
 
-        sampler = dgl.sampling.MultiLayerNeighborSampler([self.samples for x in range(2)], replace=True, return_eids=True)
-        dataloader = dgl.sampling.NodeDataLoader(graph, train_vertices, sampler,
+        sampler = dgl.dataloading.MultiLayerNeighborSampler([self.samples for x in range(2)], replace=True)
+        dataloader = dgl.dataloading.DistNodeDataLoader(graph, train_vertices, sampler,
             batch_size=len(train_vertices)//self.batch_per_timestep,#adaptive batch size
             shuffle=False, drop_last=False, num_workers=self.n_workers)
 
@@ -171,8 +171,8 @@ class PrioritizedPytorchSupervisedGraphSage(PytorchSupervisedGraphSage):
         #self.recompute_priorities(graph_util, graph_util.get_new_train_nodes())
         train_vertices = torch.LongTensor(train_vertices)
 
-        sampler = dgl.sampling.MultiLayerNeighborSampler([self.samples for x in range(2)], replace=True, return_eids=True)
-        dataloader = dgl.sampling.NodeDataLoader(graph, train_vertices, sampler,
+        sampler = dgl.dataloading.MultiLayerNeighborSampler([self.samples for x in range(2)], replace=True)
+        dataloader = dgl.dataloading.DistNodeDataLoader(graph, train_vertices, sampler,
                                                  batch_size=len(train_vertices) // self.batch_per_timestep,
                                                  # adaptive batch size
                                                  shuffle=False, drop_last=False, num_workers=self.n_workers)
@@ -221,8 +221,8 @@ class PrioritizedPytorchSupervisedGraphSage(PytorchSupervisedGraphSage):
 
         graph = graph_util.get_graph()
 
-        sampler = dgl.sampling.MultiLayerNeighborSampler([self.samples for x in range(2)], replace=True, return_eids=True)
-        dataloader = dgl.sampling.NodeDataLoader(graph, batch_nodes_seed, sampler,
+        sampler = dgl.dataloading.MultiLayerNeighborSampler([self.samples for x in range(2)], replace=True)
+        dataloader = dgl.dataloading.DistNodeDataLoader(graph, batch_nodes_seed, sampler,
                                                  batch_size=self.batch_full,
                                                  shuffle=False, drop_last=False, num_workers=self.n_workers)
 
@@ -277,8 +277,8 @@ class FullPytorchSupervisedGraphSage(PytorchSupervisedGraphSage):
             idx = torch.randperm(train_set.nelement())
             train_set = train_set.view(-1)[idx].view(train_set.size())
 
-            sampler = dgl.sampling.MultiLayerNeighborSampler([self.samples for x in range(2)], replace=True, return_eids=True)
-            dataloader = dgl.sampling.NodeDataLoader(graph, train_set, sampler,
+            sampler = dgl.dataloading.MultiLayerNeighborSampler([self.samples for x in range(2)], replace=True)
+            dataloader = dgl.dataloading.DistNodeDataLoader(graph, train_set, sampler,
                                                      batch_size=self.batch_size,
                                                      # adaptive batch size
                                                      shuffle=False, drop_last=False, num_workers=self.n_workers)
@@ -309,8 +309,8 @@ class NoRehPytorchSupervisedGraphSage(PytorchSupervisedGraphSage):
                 return
 
             batch_nodes = id_to_subgraph[idxs]
-            sampler = dgl.sampling.MultiLayerNeighborSampler([self.samples for x in range(2)], replace=True, return_eids=True)
-            dataloader = dgl.sampling.NodeDataLoader(graph, batch_nodes, sampler,
+            sampler = dgl.dataloading.MultiLayerNeighborSampler([self.samples for x in range(2)], replace=True)
+            dataloader = dgl.dataloading.DistNodeDataLoader(graph, batch_nodes, sampler,
                                                      batch_size=len(batch_nodes),
                                                      # adaptive batch size
                                                      shuffle=True, drop_last=False, num_workers=self.n_workers)

@@ -25,8 +25,8 @@ class DynamicGraphVertex(DynamicGraph):
 
         self.evolving_vertices = None
 
-        print("graph size: ", len(graph), "vertices, snapshots: ", snapshots)
-        self.vertex_per_snapshot = int(len(self.graph) / self.snapshots)
+        print("graph size: ", graph.num_nodes(), "vertices, snapshots: ", snapshots)
+        self.vertex_per_snapshot = int(graph.num_nodes() / self.snapshots)
         print("vertex per snapshot: ", self.vertex_per_snapshot)
 
     def build(self, vertex_timestamps=None, ensure_labelled=None):
@@ -54,7 +54,7 @@ class DynamicGraphVertex(DynamicGraph):
 
         if ensure_labelled is None:
             self.snapshot_vertices = [(vertices[i:i + self.vertex_per_snapshot]) for i in
-                             range(0, len(self.graph), self.vertex_per_snapshot)]  # generate vertex snapshots (sublists)
+                             range(0, self.graph.num_nodes(), self.vertex_per_snapshot)]  # generate vertex snapshots (sublists)
 
         else:
             #ensures self.vertex_per_snapshot * ensure_labelled labelled vertices per partition

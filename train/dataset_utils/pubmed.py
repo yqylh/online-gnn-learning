@@ -68,11 +68,11 @@ def preprocess(path):
     f.close()
 
 def load(path, snapshots=100, cuda=False, copy_to_gpu = False):
-    print("loading data...")
+    print("loading data...", path)
     a_exist = [f for f in FILES if os.path.isfile(os.path.join(path, f))]
     if len(a_exist) < len(FILES):
         from dataset_utils.common_utils import downloadFromURL
-        downloadFromURL(URL, path, True)
+        # downloadFromURL(URL, path, True)
 
     feat_data = np.load(os.path.join(path, "feat_data.npy"))
     targets = np.load(os.path.join(path, "targets.npy"))
