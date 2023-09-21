@@ -78,11 +78,15 @@ def load(path, snapshots=100, cuda=False, copy_to_gpu = False):
     targets = np.load(os.path.join(path, "targets.npy"))
     targets = targets.astype(np.long)
     G = nx.read_adjlist(os.path.join(path, "graph.adjlist"), nodetype = int)
+    # G.remove_edges_from(nx.selfloop_edges(G))
+    # print(nx.algorithms.core.core_number(G))
+    # print(list(nx.algorithms.core.k_core(G,10).nodes()))
 
     with open(os.path.join(path, 'postponed_timestamp.json')) as f: #vertex
         timestamps = json.load(f, object_hook= lambda d: {int(k):v for k, v in d.items()})
 
     g_dgl = dgl.from_networkx(G)
+    # print("g_dgl: ", g_dgl.number_of_nodes(), g_dgl.number_of_edges())
     g_dgl_test = dgl.from_networkx(G)
 
     feat_data_size = feat_data.shape[1]
@@ -114,6 +118,7 @@ def load(path, snapshots=100, cuda=False, copy_to_gpu = False):
     g_dgl_test.ndata['target'] = targets
 
     dynamic_graph = DynamicGraphVertex(g_dgl, snapshots, labelled_vertices)
+    # print("g_dgl: ", dynamic_graph.graph.number_of_nodes(), dynamic_graph.graph.number_of_edges())
     dynamic_graph.build(vertex_timestamps=timestamps)
 
     dynamic_graph_test = DynamicGraphVertex(g_dgl_test, snapshots, labelled_vertices)

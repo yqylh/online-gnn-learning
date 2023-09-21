@@ -124,7 +124,8 @@ class RandomPytorchSupervisedGraphSage(PytorchSupervisedGraphSage):
     def _run_custom_train(self, graph, subgraph_to_id, id_to_subgraph, train_vertices, graph_util):
         self.graphsage_model.train()
         train_vertices = torch.LongTensor(train_vertices)
-
+        # print("RandomPytorchSupervisedGraphSagetrain vertices: ", len(train_vertices))
+        # print("RandomPytorchSupervisedGraphSagetrain batch_size", len(train_vertices)//self.batch_per_timestep)
         sampler = dgl.dataloading.MultiLayerNeighborSampler([self.samples for x in range(2)], replace=True)
         dataloader = dgl.dataloading.DistNodeDataLoader(graph, train_vertices, sampler,
             batch_size=len(train_vertices)//self.batch_per_timestep,#adaptive batch size
@@ -170,7 +171,8 @@ class PrioritizedPytorchSupervisedGraphSage(PytorchSupervisedGraphSage):
         '''
         #self.recompute_priorities(graph_util, graph_util.get_new_train_nodes())
         train_vertices = torch.LongTensor(train_vertices)
-
+        # print("PrioritizedPytorchSupervisedGraphSage train vertices: ", len(train_vertices))
+        # print("PrioritizedPytorchSupervisedGraphSage train batch_size", len(train_vertices)//self.batch_per_timestep)
         sampler = dgl.dataloading.MultiLayerNeighborSampler([self.samples for x in range(2)], replace=True)
         dataloader = dgl.dataloading.DistNodeDataLoader(graph, train_vertices, sampler,
                                                  batch_size=len(train_vertices) // self.batch_per_timestep,
@@ -303,12 +305,20 @@ class NoRehPytorchSupervisedGraphSage(PytorchSupervisedGraphSage):
     def _run_custom_train(self, graph, subgraph_to_id, id_to_subgraph, batch_nodes, graph_util):
 
         self.graphsage_model.train()
+        # batch_timestep": 20,
         for b in range(self.batch_per_timestep):
+            # batch_size": 32 这里为啥要限制batch_size? 
+            # 这个狗东西每次 random.shuffle(l_train) 之后都是不一样的,每次随机选一部分数据来训练,训练很多次
             idxs = graph_util.get_new_train_nodes(self.batch_size)
+            # print("idxs: ", idxs)
             if len(idxs) < 2:
                 return
 
             batch_nodes = id_to_subgraph[idxs]
+            batch_nodes = torch.LongTensor(batch_nodes)
+            # print(self.batch_per_timestep) # 这竟然是 20?? 为啥这么大 因为输入的是 20 轮
+            # print("NoRehPytorchSupervisedGraphSage train vertices: ", len(batch_nodes))
+            # print("NoRehPytorchSupervisedGraphSage train batch_size", self.batch_size)
             sampler = dgl.dataloading.MultiLayerNeighborSampler([self.samples for x in range(2)], replace=True)
             dataloader = dgl.dataloading.DistNodeDataLoader(graph, batch_nodes, sampler,
                                                      batch_size=len(batch_nodes),
@@ -321,3 +331,39 @@ class NoRehPytorchSupervisedGraphSage(PytorchSupervisedGraphSage):
 
     def get_model(self):
         return "no_rehersal"
+
+class KcorePytorchSupervisedGraphSage(PytorchSupervisedGraphSage):
+    '''
+    Trains GraphSAGE only on new vertices
+    '''
+    def __init__(self, model, batch_per_timestep, batch_size, labels, samples, cuda=False, batch_full=512, n_workers=0):
+        super(KcorePytorchSupervisedGraphSage, self).__init__(model, batch_per_timestep, batch_size, labels, samples, n_workers=n_workers, cuda=cuda, batch_full = batch_full)
+
+    def choose_vertices(self, graph_util):
+        # print("!!core_change: ", graph_util.core_change)
+        core_change = graph_util.core_change
+        new_nodes = graph_util.temporal_graph.get_added_vertices()[0]
+        # 合并两个list
+        train_set = core_change + new_nodes
+        print("core_change: ", len(core_change))
+        print("new_nodes: ", len(new_nodes))
+        print("train_set: ", len(train_set))
+        return train_set
+
+    def _run_custom_train(self, graph, subgraph_to_id, id_to_subgraph, train_vertices, graph_util):
+        self.graphsage_model.train()
+        # 这是要训练的节点
+        train_vertices = torch.LongTensor(train_vertices)
+        # print("KcorePytorchSupervisedGraphSage train vertices: ", len(train_vertices))
+        # print("KcorePytorchSupervisedGraphSage train batch_size", len(train_vertices))
+        sampler = dgl.dataloading.MultiLayerNeighborSampler([self.samples for x in range(2)], replace=True)
+        dataloader = dgl.dataloading.DistNodeDataLoader(graph, train_vertices, sampler,
+            batch_size=len(train_vertices),#adaptive batch size
+            shuffle=False, drop_last=False, num_workers=self.n_workers)
+
+        for step, (input_nodes, seeds, blocks) in enumerate(dataloader):
+            self.train_step(graph, blocks, input_nodes, seeds, subgraph_to_id)
+
+
+    def get_model(self):
+        return "kcore"

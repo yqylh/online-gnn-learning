@@ -4,6 +4,7 @@ import random
 from itertools import compress
 from prioritized_replay.replay_buffer import PrioritizedReplayBuffer
 import utils
+import networkx as nx
 
 #from memory_profiler import profile
 
@@ -47,6 +48,8 @@ class TrainTestGraph:
         added_vertices, labelled = self.temporal_graph.get_added_vertices() #new vertices
         labelled_vertices = list(compress(added_vertices, labelled))
         self._draw_train_test(list(labelled_vertices))
+
+        self.core_change = []
 
 
     def _draw_train_test(self, vertices):
@@ -176,10 +179,38 @@ class TrainTestGraph:
         '''
         self.prior_alpha = self.start_prior_alpha + (((self.end_prior_alpha - self.start_prior_alpha)/self.__len__()) * self.temporal_graph.evolution_index)
 
+        # print("now nodes: ", self.graph.number_of_nodes())
+        # 计算此时graph中的 kcore
+        # 刚开始是edge 0 是因为没有边!
+        # print("now nodes: ", self.graph.number_of_nodes(), self.graph.number_of_edges())
+        nx_g = self.graph.to_networkx()
+        nx_g = nx.Graph(nx_g)
+        nx_g.remove_edges_from(nx.selfloop_edges(nx_g))
+        # print("nx_g: ", nx_g.number_of_nodes(), nx_g.number_of_edges()) 
+        core1 = nx.algorithms.core.core_number(nx_g)
+        # print("core1: ", core1)
+
         self.temporal_graph.evolve()
         self.graph = self.temporal_graph.get_graph()
+        nx_g = self.graph.to_networkx()
+        nx_g = nx.Graph(nx_g)
+        # 计算此时graph中的 kcore
+        nx_g.remove_edges_from(nx.selfloop_edges(nx_g))
+        core2 = nx.algorithms.core.core_number(nx_g)
+        # print("core2: ", core2)
 
+        # 把两次出现变化的记录下来,结合新增的节点,得到需要训练的节点
+        # 计算core1中出现的节点里 core 值变化的节点
+        core_change = []
+        for node in core1:
+            if core1[node] != core2[node]:
+                core_change.append(node)
+        self.core_change = core_change
+        # print("core_change: ", len(self.core_change))
+
+        # print("now nodes: ", self.graph.number_of_nodes())
         added_vertices, labelled = self.temporal_graph.get_added_vertices()
+        # print("added vertices: ", len(added_vertices)) 这是新增的节点
         labelled_vertices = list(compress(added_vertices, labelled))
         self._draw_train_test(labelled_vertices)
 

@@ -104,15 +104,16 @@ class SupervisedGraphSage():
     def choose_vertices(self, graph_util):
         raise NotImplementedError
 
-    #@profile
+    #@profile 每个时间戳的训练
     def train_timestep(self, graph_util):
-        batch_nodes = self.choose_vertices(graph_util)
+        batch_nodes = self.choose_vertices(graph_util) # 选定了一些节点
         start = time.time()
-        id_to_subgraph = graph_util.get_original_to_subgraph_map()
-        subgraph_to_id = graph_util.get_subgraph_to_original_map()
+        id_to_subgraph = graph_util.get_original_to_subgraph_map() #从id->子图
+        subgraph_to_id = graph_util.get_subgraph_to_original_map() #用不到
         graph = graph_util.get_graph()
         #graph.readonly(readonly_state=True)
         #with tf.device('/GPU:0'):
+        # print(id_to_subgraph[batch_nodes]) 这就是最后选定的训练节点
         self._run_custom_train(graph, subgraph_to_id, id_to_subgraph, id_to_subgraph[batch_nodes], graph_util)
         self.delay = time.time() - start
         #graph.readonly(readonly_state=False)
