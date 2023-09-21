@@ -1,3 +1,4 @@
+import random
 import torch
 import torch.nn as nn
 import numpy as np
@@ -117,6 +118,7 @@ class RandomPytorchSupervisedGraphSage(PytorchSupervisedGraphSage):
 
     def choose_vertices(self, graph_util):
         batch_nodes = []
+        # 随机选取 batch_per_timestep * batch_size 个节点 作为训练节点
         for xx in range(self.batch_per_timestep):
             batch_nodes += graph_util.draw_random_train_nodes(self.batch_size)
         return batch_nodes
@@ -350,19 +352,36 @@ class KcorePytorchSupervisedGraphSage(PytorchSupervisedGraphSage):
         print("train_set: ", len(train_set))
         return train_set
 
+    # def _run_custom_train(self, graph, subgraph_to_id, id_to_subgraph, train_vertices, graph_util):
+    #     self.graphsage_model.train()
+    #     # 这是要训练的节点
+    #     train_vertices = torch.LongTensor(train_vertices)
+    #     # print("KcorePytorchSupervisedGraphSage train vertices: ", len(train_vertices))
+    #     # print("KcorePytorchSupervisedGraphSage train batch_size", len(train_vertices))
+    #     sampler = dgl.dataloading.MultiLayerNeighborSampler([self.samples for x in range(2)], replace=True)
+    #     dataloader = dgl.dataloading.DistNodeDataLoader(graph, train_vertices, sampler,
+    #         batch_size=len(train_vertices),#adaptive batch size
+    #         shuffle=False, drop_last=False, num_workers=self.n_workers)
+
+    #     for step, (input_nodes, seeds, blocks) in enumerate(dataloader):
+    #         self.train_step(graph, blocks, input_nodes, seeds, subgraph_to_id)
     def _run_custom_train(self, graph, subgraph_to_id, id_to_subgraph, train_vertices, graph_util):
         self.graphsage_model.train()
-        # 这是要训练的节点
-        train_vertices = torch.LongTensor(train_vertices)
-        # print("KcorePytorchSupervisedGraphSage train vertices: ", len(train_vertices))
-        # print("KcorePytorchSupervisedGraphSage train batch_size", len(train_vertices))
-        sampler = dgl.dataloading.MultiLayerNeighborSampler([self.samples for x in range(2)], replace=True)
-        dataloader = dgl.dataloading.DistNodeDataLoader(graph, train_vertices, sampler,
-            batch_size=len(train_vertices),#adaptive batch size
-            shuffle=False, drop_last=False, num_workers=self.n_workers)
+        core_change = graph_util.core_change
+        new_nodes = graph_util.temporal_graph.get_added_vertices()[0]
+        train_set = core_change + new_nodes
+        for b in range(self.batch_per_timestep):
+            random.shuffle(train_set)
+            idxs = train_set[:self.batch_size]
+            batch_nodes = id_to_subgraph[idxs]
+            batch_nodes = torch.LongTensor(batch_nodes)
+            sampler = dgl.dataloading.MultiLayerNeighborSampler([self.samples for x in range(2)], replace=True)
+            dataloader = dgl.dataloading.DistNodeDataLoader(graph, batch_nodes, sampler,
+                                                     batch_size=len(batch_nodes),
+                                                     shuffle=True, drop_last=False, num_workers=self.n_workers)
+            for step, (input_nodes, seeds, blocks) in enumerate(dataloader):
+                self.train_step(graph, blocks, input_nodes, seeds, subgraph_to_id)
 
-        for step, (input_nodes, seeds, blocks) in enumerate(dataloader):
-            self.train_step(graph, blocks, input_nodes, seeds, subgraph_to_id)
 
 
     def get_model(self):
