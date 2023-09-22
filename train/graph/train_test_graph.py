@@ -5,6 +5,7 @@ from itertools import compress
 from prioritized_replay.replay_buffer import PrioritizedReplayBuffer
 import utils
 import networkx as nx
+import dgl
 
 #from memory_profiler import profile
 
@@ -50,6 +51,7 @@ class TrainTestGraph:
         self._draw_train_test(list(labelled_vertices))
 
         self.core_change = []
+        self.core_change_1hop = []
 
 
     def _draw_train_test(self, vertices):
@@ -206,6 +208,13 @@ class TrainTestGraph:
             if core1[node] != core2[node]:
                 core_change.append(node)
         self.core_change = core_change
+        
+        core_change_1hop = []
+        for node in core_change:
+            core_change_1hop.extend(nx.neighbors(nx_g, node))
+        # print("core_change: ", core_change)
+        # print("core_change_1hop: ", core_change_1hop)
+            
         # print("core_change: ", len(self.core_change))
 
         # print("now nodes: ", self.graph.number_of_nodes())

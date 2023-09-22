@@ -87,7 +87,8 @@ class SupervisedGraphSage():
         f1 = f1_score(labels, output_data.argmax(axis=1), average="macro")
 
         f = open(path, "a+")
-        f.write(self.get_model()+";"+str(f1)+";"+str(self.delay)+";"+str(confusion_matrix)+"\n")
+        # f.write(self.get_model()+";"+str(f1)+";"+str(self.delay)+";"+str(confusion_matrix)+"\n")
+        f.write(self.get_model()+";"+str(f1)+";"+str(self.delay)+"\n")
         f.close()
 
         print("Test F1:", f1)
