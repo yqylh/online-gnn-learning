@@ -29,7 +29,7 @@ def init(library, GPU = False, GPU_ID = -1):
         import torch
         if _GPU and GPU_ID >= 0:
             torch.cuda.set_device(GPU)
-        return GraphSAGE_pytorch, RandomPytorchSupervisedGraphSage, PrioritizedPytorchSupervisedGraphSage, NoRehPytorchSupervisedGraphSage, FullPytorchSupervisedGraphSage, KcorePytorchSupervisedGraphSage,KcoreOneHopPytorchSupervisedGraphSage, torch.nn.functional.relu
+        return GraphSAGE_pytorch, RandomPytorchSupervisedGraphSage, PrioritizedPytorchSupervisedGraphSage, NoRehPytorchSupervisedGraphSage, FullPytorchSupervisedGraphSage, KcorePytorchSupervisedGraphSage,KcoreOneHopPytorchSupervisedGraphSage, KtrussNodePytorchSupervisedGraphSage, KtrussEdgePytorchSupervisedGraphSage, KtrussEdgeOneHopPytorchSupervisedGraphSage, torch.nn.functional.relu
 
     elif LIB == Lib_supported.TF_STATIC:
         #import tensorflow as tf

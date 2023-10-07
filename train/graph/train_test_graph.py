@@ -52,6 +52,9 @@ class TrainTestGraph:
 
         self.core_change = []
         self.core_change_1hop = []
+        self.nodeTruss_change = []
+        self.edgeTruss_change = []
+        self.edgeTruss_change_1hop = []
 
 
     def _draw_train_test(self, vertices):
@@ -173,6 +176,57 @@ class TrainTestGraph:
     def __len__(self):
         return len(self.temporal_graph)
 
+    def solveTruss(self, graph):
+        truss1 = dict()
+        # 计算此时graph中的每条边的k-truss
+        # 遍历每条边,计算支持度
+        for edge in graph.edges():
+            # 边的两个端点
+            u = edge[0]
+            v = edge[1]
+            # u的邻居
+            u_neighbors = nx.neighbors(graph, u)
+            # v的邻居
+            v_neighbors = nx.neighbors(graph, v)
+            # u和v的公共邻居
+            common_neighbors = set(u_neighbors).intersection(set(v_neighbors))
+            # print("common_neighbors: ", common_neighbors)
+            # 计算支持度
+            support = len(common_neighbors)
+            # 输出支持度
+            # print("support: ", support)
+            if u not in truss1:
+                truss1[u] = support
+            else:
+                truss1[u] = max(truss1[u], support)
+            if v not in truss1:
+                truss1[v] = support
+            else:
+                truss1[v] = max(truss1[v], support)
+        # print("truss1: ", truss1) 
+        return truss1
+    def solveTrussEdge(self, graph):
+        truss1 = dict()
+        # 计算此时graph中的每条边的k-truss
+        # 遍历每条边,计算支持度
+        for edge in graph.edges():
+            # 边的两个端点
+            u = edge[0]
+            v = edge[1]
+            # u的邻居
+            u_neighbors = nx.neighbors(graph, u)
+            # v的邻居
+            v_neighbors = nx.neighbors(graph, v)
+            # u和v的公共邻居
+            common_neighbors = set(u_neighbors).intersection(set(v_neighbors))
+            # print("common_neighbors: ", common_neighbors)
+            # 计算支持度
+            support = len(common_neighbors)
+            # 输出支持度
+            # print("support: ", support)
+            truss1[edge] = support
+        return truss1
+
     #@profile
     def evolve(self):
         '''
@@ -191,15 +245,24 @@ class TrainTestGraph:
         # print("nx_g: ", nx_g.number_of_nodes(), nx_g.number_of_edges()) 
         core1 = nx.algorithms.core.core_number(nx_g)
         # print("core1: ", core1)
+        
+        # 计算此时graph中的每个点的最大k-truss
+        nodeTruss1 = self.solveTruss(nx_g)
+        edgeTruss1 = self.solveTrussEdge(nx_g)
 
+        # 更新图
         self.temporal_graph.evolve()
         self.graph = self.temporal_graph.get_graph()
         nx_g = self.graph.to_networkx()
         nx_g = nx.Graph(nx_g)
+
         # 计算此时graph中的 kcore
         nx_g.remove_edges_from(nx.selfloop_edges(nx_g))
         core2 = nx.algorithms.core.core_number(nx_g)
         # print("core2: ", core2)
+        # 计算此时graph中的每个点的最大k-truss
+        nodeTruss2 = self.solveTruss(nx_g)
+        edgeTruss2 = self.solveTrussEdge(nx_g)
 
         # 把两次出现变化的记录下来,结合新增的节点,得到需要训练的节点
         # 计算core1中出现的节点里 core 值变化的节点
@@ -209,9 +272,30 @@ class TrainTestGraph:
                 core_change.append(node)
         self.core_change = core_change
         
+        # 计算truss1中出现的节点里 truss 值变化的节点
+        nodeTruss_change = []
+        for node in nodeTruss1:
+            if nodeTruss1[node] != nodeTruss2[node]:
+                nodeTruss_change.append(node)
+        self.nodeTruss_change = nodeTruss_change
+
+        # 计算edgeTruss1中出现的边里 truss 值变化的边
+        edgeTruss_change = []
+        for edge in edgeTruss1:
+            if edgeTruss1[edge] != edgeTruss2[edge]:
+                # 将边的两个端点加入到edgeTruss_change中
+                edgeTruss_change.append(edge[0])
+                edgeTruss_change.append(edge[1])
+        self.edgeTruss_change = edgeTruss_change
+        # print("edgeTrussChange: ", self.edgeTruss_change)
+        
+
         core_change_1hop = []
         for node in core_change:
             core_change_1hop.extend(nx.neighbors(nx_g, node))
+        edgeTruss_change_1hop = []
+        for node in edgeTruss_change:
+            edgeTruss_change_1hop.extend(nx.neighbors(nx_g, node))
         # print("core_change: ", core_change)
         # print("core_change_1hop: ", core_change_1hop)
             

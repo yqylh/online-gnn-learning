@@ -440,3 +440,101 @@ class KcoreOneHopPytorchSupervisedGraphSage(PytorchSupervisedGraphSage):
 
     def get_model(self):
         return "kcore1hop"
+class KtrussNodePytorchSupervisedGraphSage(PytorchSupervisedGraphSage):
+    '''
+    Trains GraphSAGE only on new vertices
+    '''
+    def __init__(self, model, batch_per_timestep, batch_size, labels, samples, cuda=False, batch_full=512, n_workers=0):
+        super(KtrussNodePytorchSupervisedGraphSage, self).__init__(model, batch_per_timestep, batch_size, labels, samples, n_workers=n_workers, cuda=cuda, batch_full = batch_full)
+
+    def choose_vertices(self, graph_util):
+        nodeTruss_change = graph_util.nodeTruss_change
+        new_nodes = graph_util.temporal_graph.get_added_vertices()[0]
+        train_set = nodeTruss_change + new_nodes
+        return train_set
+
+    def _run_custom_train(self, graph, subgraph_to_id, id_to_subgraph, train_vertices, graph_util):
+        self.graphsage_model.train()
+        nodeTruss_change = graph_util.nodeTruss_change
+        new_nodes = graph_util.temporal_graph.get_added_vertices()[0]
+        train_set = nodeTruss_change + new_nodes
+        for b in range(self.batch_per_timestep):
+            random.shuffle(train_set)
+            idxs = train_set[:self.batch_size]
+            batch_nodes = id_to_subgraph[idxs]
+            batch_nodes = torch.LongTensor(batch_nodes)
+            sampler = dgl.dataloading.MultiLayerNeighborSampler([self.samples for x in range(2)], replace=True)
+            dataloader = dgl.dataloading.DistNodeDataLoader(graph, batch_nodes, sampler,
+                                                     batch_size=len(batch_nodes),
+                                                     shuffle=True, drop_last=False, num_workers=self.n_workers)
+            for step, (input_nodes, seeds, blocks) in enumerate(dataloader):
+                self.train_step(graph, blocks, input_nodes, seeds, subgraph_to_id)
+
+    def get_model(self):
+        return "ktrussNode"
+
+class KtrussEdgePytorchSupervisedGraphSage(PytorchSupervisedGraphSage):
+    '''
+    Trains GraphSAGE only on new vertices
+    '''
+    def __init__(self, model, batch_per_timestep, batch_size, labels, samples, cuda=False, batch_full=512, n_workers=0):
+        super(KtrussEdgePytorchSupervisedGraphSage, self).__init__(model, batch_per_timestep, batch_size, labels, samples, n_workers=n_workers, cuda=cuda, batch_full = batch_full)
+
+    def choose_vertices(self, graph_util):
+        edgeTruss_change = graph_util.edgeTruss_change
+        new_nodes = graph_util.temporal_graph.get_added_vertices()[0]
+        train_set = edgeTruss_change + new_nodes
+        return train_set
+
+    def _run_custom_train(self, graph, subgraph_to_id, id_to_subgraph, train_vertices, graph_util):
+        self.graphsage_model.train()
+        edgeTruss_change = graph_util.edgeTruss_change
+        new_nodes = graph_util.temporal_graph.get_added_vertices()[0]
+        train_set = edgeTruss_change + new_nodes
+        for b in range(self.batch_per_timestep):
+            random.shuffle(train_set)
+            idxs = train_set[:self.batch_size]
+            batch_nodes = id_to_subgraph[idxs]
+            batch_nodes = torch.LongTensor(batch_nodes)
+            sampler = dgl.dataloading.MultiLayerNeighborSampler([self.samples for x in range(2)], replace=True)
+            dataloader = dgl.dataloading.DistNodeDataLoader(graph, batch_nodes, sampler,
+                                                     batch_size=len(batch_nodes),
+                                                     shuffle=True, drop_last=False, num_workers=self.n_workers)
+            for step, (input_nodes, seeds, blocks) in enumerate(dataloader):
+                self.train_step(graph, blocks, input_nodes, seeds, subgraph_to_id)
+
+    def get_model(self):
+        return "ktrussEdge"
+class KtrussEdgeOneHopPytorchSupervisedGraphSage(PytorchSupervisedGraphSage):
+    '''
+    Trains GraphSAGE only on new vertices
+    '''
+    def __init__(self, model, batch_per_timestep, batch_size, labels, samples, cuda=False, batch_full=512, n_workers=0):
+        super(KtrussEdgeOneHopPytorchSupervisedGraphSage, self).__init__(model, batch_per_timestep, batch_size, labels, samples, n_workers=n_workers, cuda=cuda, batch_full = batch_full)
+
+    def choose_vertices(self, graph_util):
+        edgeTruss_change = graph_util.edgeTruss_change
+        new_nodes = graph_util.temporal_graph.get_added_vertices()[0]
+        train_set = edgeTruss_change + new_nodes
+        return train_set
+
+    def _run_custom_train(self, graph, subgraph_to_id, id_to_subgraph, train_vertices, graph_util):
+        self.graphsage_model.train()
+        edgeTruss_change = graph_util.edgeTruss_change
+        edgeTruss_change_1hop = graph_util.edgeTruss_change_1hop
+        new_nodes = graph_util.temporal_graph.get_added_vertices()[0]
+        train_set = edgeTruss_change + new_nodes + edgeTruss_change_1hop
+        for b in range(self.batch_per_timestep):
+            random.shuffle(train_set)
+            idxs = train_set[:self.batch_size]
+            batch_nodes = id_to_subgraph[idxs]
+            batch_nodes = torch.LongTensor(batch_nodes)
+            sampler = dgl.dataloading.MultiLayerNeighborSampler([self.samples for x in range(2)], replace=True)
+            dataloader = dgl.dataloading.DistNodeDataLoader(graph, batch_nodes, sampler,
+                                                     batch_size=len(batch_nodes),
+                                                     shuffle=True, drop_last=False, num_workers=self.n_workers)
+            for step, (input_nodes, seeds, blocks) in enumerate(dataloader):
+                self.train_step(graph, blocks, input_nodes, seeds, subgraph_to_id)
+
+    def get_model(self):
+        return "ktrussEdgeOneHop"

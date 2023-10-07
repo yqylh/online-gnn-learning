@@ -96,7 +96,7 @@ if not sys.stdout.isatty():
 
 def run():
     print("init")
-    GraphSAGE, RandomSupervisedGraphSage, PrioritizedSupervisedGraphSage, NoRehSupervisedGraphSage, FullSupervisedGraphSage, KcorePytorchSupervisedGraphSage, KcoreOneHopPytorchSupervisedGraphSage, activation = init(LIBRARY, data["cuda"], data["gpu"])
+    GraphSAGE, RandomSupervisedGraphSage, PrioritizedSupervisedGraphSage, NoRehSupervisedGraphSage, FullSupervisedGraphSage, KcorePytorchSupervisedGraphSage, KcoreOneHopPytorchSupervisedGraphSage, KtrussNodePytorchSupervisedGraphSage, KtrussEdgePytorchSupervisedGraphSage, KtrussEdgeOneHopPytorchSupervisedGraphSage, activation = init(LIBRARY, data["cuda"], data["gpu"])
     if args.dataset == "pubmed":
         from dataset_utils.pubmed import load
     elif args.dataset == "reddit":
@@ -127,6 +127,9 @@ def run():
     model_full = GraphSAGE(feat_data_size, data["embedding_size"], n_classes, data["depth"] - 1, activation, data["dropout"], "pool", edge_feats=data["edge_feats"], pool_feats=data["latent_dim"])
     model_kcore = GraphSAGE(feat_data_size, data["embedding_size"], n_classes, data["depth"] - 1, activation, data["dropout"], "pool", edge_feats=data["edge_feats"], pool_feats=data["latent_dim"])
     model_kcore_onehop = GraphSAGE(feat_data_size, data["embedding_size"], n_classes, data["depth"] - 1, activation, data["dropout"], "pool", edge_feats=data["edge_feats"], pool_feats=data["latent_dim"])
+    model_ktrussNode = GraphSAGE(feat_data_size, data["embedding_size"], n_classes, data["depth"] - 1, activation, data["dropout"], "pool", edge_feats=data["edge_feats"], pool_feats=data["latent_dim"])
+    model_ktrussEdge = GraphSAGE(feat_data_size, data["embedding_size"], n_classes, data["depth"] - 1, activation, data["dropout"], "pool", edge_feats=data["edge_feats"], pool_feats=data["latent_dim"])
+    model_ktrussEdge_onehop = GraphSAGE(feat_data_size, data["embedding_size"], n_classes, data["depth"] - 1, activation, data["dropout"], "pool",edge_feats=data["edge_feats"], pool_feats=data["latent_dim"])
 
     if data["cuda"] and LIBRARY == Lib_supported.PYTORCH:
         print("moving models to CUDA... ")
@@ -136,6 +139,9 @@ def run():
         model_full = model_full.cuda()
         model_kcore = model_kcore.cuda()
         model_kcore_onehop = model_kcore_onehop.cuda()
+        model_ktrussNode = model_ktrussNode.cuda()
+        model_ktrussEdge = model_ktrussEdge.cuda()
+        model_ktrussEdge_onehop = model_ktrussEdge_onehop.cuda()
 
     print("start...")
     print(data["batch_timestep"]) # 这个值会被命令函参数修改成 20
@@ -163,6 +169,15 @@ def run():
     graphsage_kcore_onehop = KcoreOneHopPytorchSupervisedGraphSage(model_kcore_onehop, data["batch_timestep"], data["batch_size"], labels, data["samples"], cuda=data["cuda"],batch_full=data["batch_full"], n_workers = data["n_sampling_workers"])
     graphsage_kcore_onehop.build_optimizer()
 
+    graphsage_ktrussNode = KtrussNodePytorchSupervisedGraphSage(model_ktrussNode, data["batch_timestep"], data["batch_size"], labels, data["samples"], cuda=data["cuda"],batch_full=data["batch_full"], n_workers = data["n_sampling_workers"])
+    graphsage_ktrussNode.build_optimizer()
+
+    graphsage_ktrussEdge = KtrussEdgePytorchSupervisedGraphSage(model_ktrussEdge, data["batch_timestep"], data["batch_size"], labels, data["samples"], cuda=data["cuda"],batch_full=data["batch_full"], n_workers = data["n_sampling_workers"])
+    graphsage_ktrussEdge.build_optimizer()
+
+    graphsage_ktrussEdge_onehop = KtrussEdgeOneHopPytorchSupervisedGraphSage(model_ktrussEdge_onehop, data["batch_timestep"], data["batch_size"], labels, data["samples"], cuda=data["cuda"],batch_full=data["batch_full"], n_workers = data["n_sampling_workers"])
+    graphsage_ktrussEdge_onehop.build_optimizer()
+
     size_evolution = len(graph_util) #这是啥 分片的数量,graph_util可以不断地变成最新的
     print(size_evolution)
 
@@ -174,16 +189,22 @@ def run():
 
         #start = time.time()
         #print("random")
-        graphsage_random.train_timestep(graph_util)
+        # graphsage_random.train_timestep(graph_util)
         #print("Time required: ", time.time() - start)
         #print("priority")
-        graphsage_priority.train_timestep(graph_util)
+        # graphsage_priority.train_timestep(graph_util)
         #print("no reh")
-        graphsage_no_reh.train_timestep(graph_util)
+        # graphsage_no_reh.train_timestep(graph_util)
         # print("kcore")
-        graphsage_kcore.train_timestep(graph_util)
+        # graphsage_kcore.train_timestep(graph_util)
         # print("kcore one hop")
-        graphsage_kcore_onehop.train_timestep(graph_util)
+        # graphsage_kcore_onehop.train_timestep(graph_util)
+        # print("ktruss node")
+        # graphsage_ktrussNode.train_timestep(graph_util)
+        # print("ktruss edge")
+        # graphsage_ktrussEdge.train_timestep(graph_util)
+        # print("ktruss edge one hop")
+        graphsage_ktrussEdge_onehop.train_timestep(graph_util)
 
         if time_step%data["train_offline"] == 0:
             print("train offline")
@@ -197,14 +218,20 @@ def run():
             # graphsage_no_reh.evaluate(graph_util, data["save_result"])
             # graphsage_full.evaluate(graph_util, data["save_result"])
             # graphsage_kcore.evaluate(graph_util, data["save_result"])
-            graphsage_kcore_onehop.evaluate(graph_util, data["save_result"])
+            # graphsage_kcore_onehop.evaluate(graph_util, data["save_result"])
+            # graphsage_ktrussNode.evaluate(graph_util, data["save_result"])
+            # graphsage_ktrussEdge.evaluate(graph_util, data["save_result"])
+            graphsage_ktrussEdge_onehop.evaluate(graph_util, data["save_result"])
             # 这里评估的是下一个快照的结果
             # graphsage_random.evaluate_next_snapshots(dynamic_graph_test, data["delta"], data["save_result"])
             # graphsage_priority.evaluate_next_snapshots(dynamic_graph_test, data["delta"], data["save_result"])
             # graphsage_no_reh.evaluate_next_snapshots(dynamic_graph_test, data["delta"], data["save_result"])
             # graphsage_full.evaluate_next_snapshots(dynamic_graph_test, data["delta"], data["save_result"])
             # graphsage_kcore.evaluate_next_snapshots(dynamic_graph_test, data["delta"], data["save_result"])
-            graphsage_kcore_onehop.evaluate_next_snapshots(dynamic_graph_test, data["delta"], data["save_result"])
+            # graphsage_kcore_onehop.evaluate_next_snapshots(dynamic_graph_test, data["delta"], data["save_result"])
+            # graphsage_ktrussNode.evaluate_next_snapshots(dynamic_graph_test, data["delta"], data["save_result"])
+            # graphsage_ktrussEdge.evaluate_next_snapshots(dynamic_graph_test, data["delta"], data["save_result"])
+            graphsage_ktrussEdge_onehop.evaluate_next_snapshots(dynamic_graph_test, data["delta"], data["save_result"])
 
         #if time_step % data["plot_tsne"] == 0:
         #    graphsage_priority.generate_tsne(graph_util, data["save_tsne"], time_step)
