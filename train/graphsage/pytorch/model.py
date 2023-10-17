@@ -342,15 +342,7 @@ class KcorePytorchSupervisedGraphSage(PytorchSupervisedGraphSage):
         super(KcorePytorchSupervisedGraphSage, self).__init__(model, batch_per_timestep, batch_size, labels, samples, n_workers=n_workers, cuda=cuda, batch_full = batch_full)
 
     def choose_vertices(self, graph_util):
-        # print("!!core_change: ", graph_util.core_change)
-        core_change = graph_util.core_change
-        new_nodes = graph_util.temporal_graph.get_added_vertices()[0]
-        # 合并两个list
-        train_set = core_change + new_nodes
-        print("core_change: ", len(core_change))
-        print("new_nodes: ", len(new_nodes))
-        print("train_set: ", len(train_set))
-        return train_set
+        return []
 
     # def _run_custom_train(self, graph, subgraph_to_id, id_to_subgraph, train_vertices, graph_util):
     #     self.graphsage_model.train()
@@ -367,12 +359,21 @@ class KcorePytorchSupervisedGraphSage(PytorchSupervisedGraphSage):
     #         self.train_step(graph, blocks, input_nodes, seeds, subgraph_to_id)
     def _run_custom_train(self, graph, subgraph_to_id, id_to_subgraph, train_vertices, graph_util):
         self.graphsage_model.train()
-        core_change = graph_util.core_change
-        new_nodes = graph_util.temporal_graph.get_added_vertices()[0]
-        train_set = core_change + new_nodes
+        core_change_subid_list = graph_util.core_change
+        core_change_oid = subgraph_to_id[core_change_subid_list]
+        core_change_oid_list = list(set(core_change_oid))
+        flag = 0
         for b in range(self.batch_per_timestep):
-            random.shuffle(train_set)
-            idxs = train_set[:self.batch_size]
+            new_nodes_oid_list = graph_util.get_new_train_nodes(self.batch_size)
+            allnode_oid_list = new_nodes_oid_list + core_change_oid_list
+            if len(allnode_oid_list) <= self.batch_size:
+                if flag == 1:
+                    break
+                idxs = allnode_oid_list
+                flag = 1
+            else:
+                random.shuffle(allnode_oid_list)
+                idxs = allnode_oid_list[:self.batch_size]
             batch_nodes = id_to_subgraph[idxs]
             batch_nodes = torch.LongTensor(batch_nodes)
             sampler = dgl.dataloading.MultiLayerNeighborSampler([self.samples for x in range(2)], replace=True)
