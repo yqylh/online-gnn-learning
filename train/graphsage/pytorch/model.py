@@ -423,8 +423,13 @@ class KcoreOneHopPytorchSupervisedGraphSage(PytorchSupervisedGraphSage):
         self.graphsage_model.train()
         core_change = graph_util.core_change
         core_change_1hop = graph_util.core_change_1hop
+
+        core_change_subid_list = core_change + core_change_1hop
+        core_change_oid = subgraph_to_id[core_change_subid_list]
+        core_change_oid_list = list(set(core_change_oid))
+
         new_nodes = graph_util.temporal_graph.get_added_vertices()[0]
-        train_set = core_change + new_nodes + core_change_1hop
+        train_set = core_change_oid_list + new_nodes 
         for b in range(self.batch_per_timestep):
             random.shuffle(train_set)
             idxs = train_set[:self.batch_size]
@@ -458,7 +463,12 @@ class KtrussNodePytorchSupervisedGraphSage(PytorchSupervisedGraphSage):
         self.graphsage_model.train()
         nodeTruss_change = graph_util.nodeTruss_change
         new_nodes = graph_util.temporal_graph.get_added_vertices()[0]
-        train_set = nodeTruss_change + new_nodes
+
+        core_change_subid_list = nodeTruss_change
+        core_change_oid = subgraph_to_id[core_change_subid_list]
+        core_change_oid_list = list(set(core_change_oid))
+
+        train_set = core_change_oid_list + new_nodes
         for b in range(self.batch_per_timestep):
             random.shuffle(train_set)
             idxs = train_set[:self.batch_size]
@@ -491,7 +501,13 @@ class KtrussEdgePytorchSupervisedGraphSage(PytorchSupervisedGraphSage):
         self.graphsage_model.train()
         edgeTruss_change = graph_util.edgeTruss_change
         new_nodes = graph_util.temporal_graph.get_added_vertices()[0]
-        train_set = edgeTruss_change + new_nodes
+
+        core_change_subid_list = edgeTruss_change
+        core_change_oid = subgraph_to_id[core_change_subid_list]
+        core_change_oid_list = list(set(core_change_oid))
+
+
+        train_set = core_change_oid_list + new_nodes
         for b in range(self.batch_per_timestep):
             random.shuffle(train_set)
             idxs = train_set[:self.batch_size]
@@ -524,7 +540,12 @@ class KtrussEdgeOneHopPytorchSupervisedGraphSage(PytorchSupervisedGraphSage):
         edgeTruss_change = graph_util.edgeTruss_change
         edgeTruss_change_1hop = graph_util.edgeTruss_change_1hop
         new_nodes = graph_util.temporal_graph.get_added_vertices()[0]
-        train_set = edgeTruss_change + new_nodes + edgeTruss_change_1hop
+
+        core_change_subid_list = edgeTruss_change+edgeTruss_change_1hop
+        core_change_oid = subgraph_to_id[core_change_subid_list]
+        core_change_oid_list = list(set(core_change_oid))
+
+        train_set = new_nodes + core_change_oid_list
         for b in range(self.batch_per_timestep):
             random.shuffle(train_set)
             idxs = train_set[:self.batch_size]
