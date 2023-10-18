@@ -68,7 +68,7 @@ class TrainTestGraph:
         else:
             self.train = set(vertices)
             self.test = set()
-
+        # train 是新增的节点, train_set 是所有的训练节点
         self.train_set = self.train_set.union(set(self.train))
         self.train_set_list = list(self.train_set)
 
@@ -318,6 +318,7 @@ class TrainTestGraph:
         return self.test_set_list
 
     def get_new_train_nodes(self, batch_size=None):
+        # print("rel_train",self.train)
         l_train = list(self.train)
         if batch_size is None:
             return l_train

@@ -364,7 +364,7 @@ class KcorePytorchSupervisedGraphSage(PytorchSupervisedGraphSage):
         core_change_oid = subgraph_to_id[core_change_subid_list]
         core_change_oid_list = list(set(core_change_oid))
         core_change_oid_list = [x for x in core_change_oid_list if x in graph_util.train_set]
-
+        # print("core_train:new{},core_change{}", len(graph_util.train), len(core_change_subid_list))
         flag = 0
         for b in range(self.batch_per_timestep):
             new_nodes_oid_list = graph_util.get_new_train_nodes(self.batch_size)
@@ -466,6 +466,7 @@ class KtrussNodePytorchSupervisedGraphSage(PytorchSupervisedGraphSage):
         core_change_oid = subgraph_to_id[core_change_subid_list]
         core_change_oid_list = list(set(core_change_oid))
         core_change_oid_list = [x for x in core_change_oid_list if x in graph_util.train_set]
+        # print("trussnode_train:new{},core_change{}", len(graph_util.train), len(core_change_subid_list))
 
         train_set = core_change_oid_list + list(new_nodes) 
         for b in range(self.batch_per_timestep):
@@ -505,6 +506,7 @@ class KtrussEdgePytorchSupervisedGraphSage(PytorchSupervisedGraphSage):
         core_change_oid_list = list(set(core_change_oid))
         core_change_oid_list = [x for x in core_change_oid_list if x in graph_util.train_set]
 
+        # print("trussEdge_train:new{},core_change{}", len(graph_util.train), len(core_change_subid_list))
 
         train_set = core_change_oid_list + list(new_nodes) 
         for b in range(self.batch_per_timestep):
