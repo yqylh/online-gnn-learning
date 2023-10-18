@@ -15,9 +15,9 @@ FILES = ["feat_data.npy", "targets.npy", "graph.adjlist", "vertex_timestamp.json
 URL = "https://file.perini.me/graphs/bitcoin.zip"
 
 def preprocess(path):
-    df1 = pd.read_csv("elliptic_txs_classes.csv")
-    df2 = pd.read_csv("elliptic_txs_features.csv", header=None)
-    df3 = pd.read_csv("elliptic_txs_edgelist.csv")
+    df1 = pd.read_csv(path + "elliptic_txs_classes.csv")
+    df2 = pd.read_csv(path + "elliptic_txs_features.csv", header=None)
+    df3 = pd.read_csv(path + "elliptic_txs_edgelist.csv")
     df1 = df1[df1["class"] != "unknown"]
 
     node_ids = set(df3["txId1"].unique())
@@ -76,11 +76,12 @@ def preprocess(path):
         json.dump(timestamps, fp)
 
 def load(path, snapshots=100, cuda=False, copy_to_gpu=False):
+    # preprocess("./datasets/bitcoin/")
 
     a_exist = [f for f in FILES if os.path.isfile(os.path.join(path, f))]
     if len(a_exist) < len(FILES):
         from dataset_utils.common_utils import downloadFromURL
-        downloadFromURL(URL, path, True)
+        # downloadFromURL(URL, path, True)
 
     feat_data = np.load(os.path.join(path, "feat_data.npy"))
     targets = np.load(os.path.join(path, "targets.npy"))
