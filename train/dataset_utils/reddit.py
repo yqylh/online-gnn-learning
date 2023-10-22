@@ -7,7 +7,7 @@ import networkx as nx
 from networkx.readwrite import json_graph
 import utils
 
-from graph.dynamic_graph_edge import DynamicGraphEdge
+from graph.dynamic_graph_vertex import DynamicGraphVertex
 from ast import literal_eval as make_tuple
 
 import dgl
@@ -37,64 +37,6 @@ def preprocess(path, restrict=100000):
     np.save(os.path.join(path, "targets.npy"), feat_data.astype(np.double, order='C'), allow_pickle=False,
             fix_imports=True)
 
-
-def relabel():
-    feat_data = np.load("feat_data.npy")
-    targets = np.load("targets.npy")
-    G = nx.read_adjlist("graph.adjlist", nodetype=int)
-    with open('edge_timestamp.json') as f:
-        timestamps = json.load(f, object_hook=lambda d: {tuple(map(int, make_tuple(k))): v for k, v in d.items()})
-
-    def sort_second(val):
-        return val[1]
-
-    ordered_edges = list(timestamps.items())
-    ordered_edges.sort(key=sort_second)
-    edges = list(x[0] for x in ordered_edges)
-
-    counter = 0
-    vertices = {}
-
-    for e in edges:
-        v0 = e[0]
-        v1 = e[1]
-
-        if v0 not in vertices:
-            vertices[v0] = counter
-            counter += 1
-        if v1 not in vertices:
-            vertices[v1] = counter
-            counter += 1
-
-    new_graph = nx.relabel_nodes(G, vertices, copy=True)  # final graph
-    new_timestamps = {}  # final timestamps
-    for e in edges:
-        new_timestamps[(vertices[e[0]], vertices[e[1]])] = timestamps[e]
-
-    order = list(vertices.items())
-    order.sort(key=sort_second)
-    order = list(x[0] for x in order)
-
-    feat_data_ordered = feat_data[order, :]
-    targets_ordered = targets[order, :]
-
-    str_new_timestamps = {}
-    for x in new_timestamps.items():
-        str_new_timestamps[str((x[0][0], x[0][1]))] = x[1]
-
-    new_graph = new_graph.to_undirected()
-    nx.write_adjlist(new_graph, "graph_relabel.adjlist")
-
-    js = json.dumps(str_new_timestamps)
-    f = open(("edge_relabel_timestamp.json"), "w")
-    f.write(js)
-    f.close()
-
-    np.save(("feat_relabel_data.npy"), feat_data_ordered.astype(np.double, order='C'), allow_pickle=False,
-            fix_imports=True)
-    np.save(("targets_relabel.npy"), targets_ordered.astype(np.double, order='C'), allow_pickle=False, fix_imports=True)
-
-
 def load(path, snapshots=100, cuda=False, copy_to_gpu = False):
     # preprocess("./datasets/reddit")
     # a_exist = [f for f in FILES if os.path.isfile(os.path.join(path, f))]
@@ -105,29 +47,31 @@ def load(path, snapshots=100, cuda=False, copy_to_gpu = False):
     feat_data = np.load(os.path.join(path, "feat_data.npy"))
     targets = np.load(os.path.join(path, "targets.npy"))
     targets = targets.astype(np.long)
+    G = nx.read_adjlist(os.path.join(path, "graph.adjlist"))
 
-    timestamps = pd.read_csv(os.path.join(path, "edges_dataframe.csv"), na_filter=False, dtype=np.int)
+    with open(os.path.join(path, 'vertex_timestamp.json')) as f:#last
+        timestamps = json.load(f, object_hook=lambda d: {int(k): v for k, v in d.items()})
 
-    print(feat_data.shape)
-    print(len(timestamps))
+    g_dgl = dgl.from_networkx(G)
+    g_dgl_test = dgl.from_networkx(G)
 
     feat_data_size = feat_data.shape[1]
-    #if cuda and copy_to_gpu:
-    #    print("copy to gpu")
-    feat_data = utils.to_nn_lib(feat_data, False)
-    labelled_vertices = set(np.argwhere(targets != -1)[:,0])
-    n_classes = len(np.unique(targets))
-    targets = utils.to_nn_lib(targets, False)
+    feat_data = utils.to_nn_lib(feat_data, cuda and copy_to_gpu)
+    labelled_vertices = set(np.argwhere(targets != -1)[:, 0])
+    n_classes =	len(np.unique(targets))
+    targets = utils.to_nn_lib(targets, cuda and copy_to_gpu)
 
+    g_dgl.ndata['feat'] = feat_data
+    g_dgl.ndata['target'] = targets
 
-    dynamic_graph = DynamicGraphEdge(snapshots, labelled_vertices)
-    dynamic_graph.build(feat_data, targets, cuda and copy_to_gpu, edge_timestamps=timestamps)
+    g_dgl_test.ndata['feat'] = feat_data
+    g_dgl_test.ndata['target'] = targets
 
-    print("DONE")
-    #dynamic_graph_test = None
+    dynamic_graph = DynamicGraphVertex(g_dgl, snapshots, labelled_vertices)
+    dynamic_graph.build(vertex_timestamps=timestamps)
 
-    dynamic_graph_test = DynamicGraphEdge(snapshots, labelled_vertices)
-    dynamic_graph_test.build(feat_data, targets, cuda and copy_to_gpu, edge_timestamps=timestamps)
+    dynamic_graph_test = DynamicGraphVertex(g_dgl_test, snapshots, labelled_vertices)
+    dynamic_graph_test.build(vertex_timestamps=timestamps)
 
     return feat_data_size, targets, dynamic_graph, n_classes, dynamic_graph_test
 

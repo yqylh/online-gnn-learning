@@ -29,9 +29,11 @@ def preprocess(path):
             info = line.split("\t")
             node_map[info[0]] = i
             labels[i] = int(info[1].split("=")[1]) - 1
+            print("label", i, labels[i])
             for word_info in info[2:-1]:
                 word_info = word_info.split("=")
                 feat_data[i][feat_map[word_info[0]]] = float(word_info[1])
+                print("feat_data", i, feat_map[word_info[0]] , feat_data[i][feat_map[word_info[0]]])
 
     np.save(os.path.join(path, "feat_data.npy"), feat_data.astype(np.double, order='C'), allow_pickle=False,
             fix_imports=True)
@@ -68,6 +70,7 @@ def preprocess(path):
     f.close()
 
 def load(path, snapshots=100, cuda=False, copy_to_gpu = False):
+    # preprocess("datasets/pubmed")
     print("loading data...", path)
     a_exist = [f for f in FILES if os.path.isfile(os.path.join(path, f))]
     if len(a_exist) < len(FILES):
