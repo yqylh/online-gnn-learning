@@ -4,17 +4,25 @@
 3. 切换到 test
 # 运行
 `python train pubmed pytorch test_eval.csv tsne_1 --cuda`
+
 其中 PubMed 是数据集的名字,可以改成elliptic(bitcoin 数据集),reddit
+
 pytorch 指的是调用 pytorch 进行训练,还有 tf 的,但是涉及的代码量太大,我只修改了 torch
+
 test_eval.csv 表示输出的结果的名字
+
 # 结果格式
 结果由n行`kcore;0.6372866194056955;0.1461162567138672`构成
+
 第一列表示算法名,第二次是 F1,第三列是训练时间
 # 数据集依赖
 在根目录下的datasets里面,创建相应的数据集的名字,在官网下载相应的数据集的文件,然后先执行一下train/dataname.py中的preprocess
+
 reddit 数据集完全是胡扯, 作者甚至没有导入图的内容, 我自己改了一份能用的,不过单纯加载图就需要30 分钟以上.图的大小需要至少 20G 的显存和 30G 的内存
+
 # 如何只运行部分算法?
 在`__main__.py`中的 187 行开始
+
 ```python
     for time_step in range(size_evolution):
         print("processing time step: ", time_step)
