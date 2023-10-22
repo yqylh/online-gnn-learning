@@ -17,60 +17,14 @@ FILES = ["feat_data.npy", "targets.npy", "edges_dataframe.csv"]
 URL = "https://uoe-my.sharepoint.com/:u:/g/personal/s2121589_ed_ac_uk/EX6tn7RXc39LoIwZ0D5F9EcBofEGksT7nIuOrwIqCfXnPw?Download=1"
 
 def preprocess(path, restrict=100000):
-
-    edges_timestamps = json.load(open(os.path.join(path, "edge_timestamps.json")))
     id_map = json.load(open(os.path.join(path, "reddit-id_map.json")))
-    G_final = nx.Graph()
-    edges_timestamps_res = {}
-    edges_timestamps_fixed = {}
-    i=0
 
     G_data_json = json.load(open(os.path.join(path, "reddit-G.json")))
     G_data = json_graph.node_link_graph(G_data_json)
+    G_data = G_data.to_undirected()
 
-    max_len = len(G_data.edges())
-
-    for edge in list(G_data.edges()):
-        node_1 = edge[0] # get numerical vertex id
-        node_2 = edge[1]
-
-        key_1 = G_data_json["nodes"][node_1]["id"] #integer id -> string id
-        key_2 = G_data_json["nodes"][node_2]["id"]
-
-        #query the map
-        intersection = set(edges_timestamps[key_1].keys()) & set(edges_timestamps[key_2].keys()) #check: map[key] : users that commented the post. check intersection (same user)
-        min_time = -1
-        first = True
-
-        for k in intersection: #users who commented both posts
-            time_1 = edges_timestamps[key_1][k]
-            time_2 = edges_timestamps[key_2][k]
-            time_edge = max(time_1, time_2)
-            if (first or time_edge < min_time) and k != "":
-                min_time = time_edge
-                first = False
-                edges_timestamps_res[str(edge)] = min_time #key: edge (vertex ids)
-                edges_timestamps_fixed[str((id_map[key_1], id_map[key_2]))] = min_time
-                G_final.add_edge(id_map[key_1], id_map[key_2])
-
-        if i%1000 == 0:
-            print(i, " of ", max_len)
-
-        i+=1
-
-    G_final = G_final.to_undirected()
-    nx.write_adjlist(G_final, os.path.join(path, "graph.adjlist"))
+    nx.write_adjlist(G_data, os.path.join(path, "graph.adjlist"))
     feat_data = np.load(os.path.join(path, "reddit-feats.npy"))
-
-    js = json.dumps(edges_timestamps_res)
-    f = open(os.path.join(path, "edge_timestamp_old.json"), "w")
-    f.write(js)
-    f.close()
-
-    js = json.dumps(edges_timestamps_fixed)
-    f = open(os.path.join(path, "edge_timestamp.json"), "w")
-    f.write(js)
-    f.close()
 
     np.save(os.path.join(path, "feat_data.npy"), feat_data.astype(np.double, order='C'), allow_pickle=False,
             fix_imports=True)
@@ -142,10 +96,11 @@ def relabel():
 
 
 def load(path, snapshots=100, cuda=False, copy_to_gpu = False):
-    a_exist = [f for f in FILES if os.path.isfile(os.path.join(path, f))]
-    if len(a_exist) < len(FILES):
-        from dataset_utils.common_utils import downloadFromURL
-        downloadFromURL(URL, path, True)
+    # preprocess("./datasets/reddit")
+    # a_exist = [f for f in FILES if os.path.isfile(os.path.join(path, f))]
+    # if len(a_exist) < len(FILES):
+    #     from dataset_utils.common_utils import downloadFromURL
+    #     downloadFromURL(URL, path, True)
 
     feat_data = np.load(os.path.join(path, "feat_data.npy"))
     targets = np.load(os.path.join(path, "targets.npy"))
